@@ -1,13 +1,13 @@
 -- ============================================================================
--- 1. CORE OPTIONS (Mouse, Tiling, Formatting)
+-- 1. CORE OPTIONS
 -- ============================================================================
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 vim.opt.number = true
 vim.opt.relativenumber = true
-vim.opt.mouse = "a"                  -- Click to position cursor, drag splits, scroll
-vim.opt.clipboard = "unnamedplus"    -- Sync with system clipboard
+vim.opt.mouse = "a"                  -- Mouse support: click, scroll, drag splits
+vim.opt.clipboard = "unnamedplus"    -- System clipboard integration
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
@@ -30,10 +30,10 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 -- ============================================================================
--- 3. PLUGIN SPECIFICATIONS
+-- 3. PLUGINS
 -- ============================================================================
 require("lazy").setup({
-  -- Clean Icons & UI Theme
+  -- UI & Theme
   { "echasnovski/mini.icons", opts = {} },
   { 
     "catppuccin/nvim", 
@@ -41,8 +41,6 @@ require("lazy").setup({
     priority = 1000, 
     config = function() vim.cmd.colorscheme("catppuccin") end 
   },
-
-  -- Keybinding Cheat Sheet / Notes Popup
   { "folke/which-key.nvim", event = "VeryLazy", opts = {} },
 
   -- Fuzzy Finder (Telescope)
@@ -58,44 +56,45 @@ require("lazy").setup({
 
   -- Syntax Highlighting (Treesitter)
   {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
-    config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = { 
-          "c", "cpp", "c_sharp", "python", "javascript", 
-          "yaml", "html", "css", "json", "markdown" 
-        },
-        highlight = { enable = true },
-      })
-    end,
-  },
-
-  -- LSP Management & Language Servers
-  { "williamboman/mason.nvim", opts = {} },
+  "nvim-treesitter/nvim-treesitter",
+  build = ":TSUpdate",
+  config = function()
+    local configs = require("nvim-treesitter.configs")
+    configs.setup({
+      ensure_installed = { "cpp", "c_sharp", "python", "javascript",  "yaml", "html", "css", "json", "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline" },
+      sync_install = false,
+      highlight = { enable = true },
+      indent = { enable = true },
+    })
+  end,
+},
+  -- LSP & Language Servers (Mason + lspconfig)
+  { "mason-org/mason.nvim", opts = {} },
   {
     "williamboman/mason-lspconfig.nvim",
+    dependencies = { "mason-org/mason.nvim", "neovim/nvim-lspconfig" },
     opts = {
       ensure_installed = { 
         "clangd", "pyright", "ts_ls", "yamlls", 
         "html", "cssls", "jsonls", "marksman" 
       },
+      handlers = {
+        function(server_name)
+          require("lspconfig")[server_name].setup({})
+        end,
+      },
     },
   },
-  {
-    "neovim/nvim-lspconfig",
-    config = function()
-      local lspconfig = require("lspconfig")
-      local servers = { "clangd", "pyright", "ts_ls", "yamlls", "html", "cssls", "jsonls", "marksman" }
-      for _, lsp in ipairs(servers) do
-        lspconfig[lsp].setup({})
-      end
-    end,
-  },
-
+  { "neovim/nvim-lspconfig" },
   -- Unity C# Support via Roslyn
-  { "sevrdn/roslyn.nvim", ft = "cs", opts = {} },
-
+  {
+    "seblyng/roslyn.nvim",
+        ---@module 'roslyn.config'
+        ---@type RoslynNvimConfig
+        opts = {
+        -- your configuration comes here; leave empty for default settings
+        },
+    },
   -- Autocompletion Engine (nvim-cmp)
   {
     "hrsh7th/nvim-cmp",
@@ -123,21 +122,32 @@ require("lazy").setup({
     end,
   },
 
-  -- Terminal Tile (ToggleTerm - Toggle with Ctrl+\)
+  -- Floating Terminal
   {
     "akinsho/toggleterm.nvim",
     version = "*",
     opts = { open_mapping = [[<c-\>]], direction = "float" },
   },
 
-  -- PostgreSQL & Database Interface
+  -- Database Client (vim-dadbod & dadbod-ui)
   {
     "kristijanhusak/vim-dadbod-ui",
-    dependencies = { "tpope/vim-dadbod" },
-    cmd = { "DBUI", "DBUIToggle" },
+    dependencies = {
+      { "tpope/vim-dadbod", lazy = true },
+      { "kristijanhusak/vim-dadbod-completion", ft = { "sql", "mysql", "plsql" }, lazy = true },
+    },
+    cmd = {
+      "DBUI",
+      "DBUIToggle",
+      "DBUIAddConnection",
+      "DBUIFindBuffer",
+    },
+    init = function()
+      vim.g.db_ui_use_nerd_fonts = 1
+    end,
   },
 
-  -- Local AI / Copilot Integration
+  -- Local AI (CodeCompanion)
   {
     "olimorris/codecompanion.nvim",
     dependencies = { "nvim-lua/plenary.nvim", "nvim-treesitter/nvim-treesitter" },
